@@ -41,7 +41,7 @@ func main() {
 		addr = v
 	}
 	log.Printf("listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	log.Fatal(http.ListenAndServe(addr, corsMiddleware(mux)))
 }
 
 // handleSectorsByPieceCID returns all sectors that contain the given piece.
@@ -210,6 +210,19 @@ func scanSectors(w http.ResponseWriter, rows *sql.Rows) []Sector {
 		return nil
 	}
 	return sectors
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
